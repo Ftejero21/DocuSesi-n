@@ -109,7 +109,7 @@ code --install-extension docusesion-0.1.0.vsix
    node -r ./scripts/node18-file-shim.cjs ./node_modules/@vscode/vsce/vsce login ftejero
    ```
 
-4. Sube el código a https://github.com/Ftejero21/DocuSesi-n (rama por defecto): `package.json` (`repository`, `bugs`, `homepage`) y los enlaces de `README.md`/`README.es.md` (idioma y LICENSE) apuntan a ese repositorio, así que deben existir allí `extension/README.md`, `extension/README.es.md` y `extension/LICENSE` (el repositorio tiene la extensión en la subcarpeta `extension/`).
+4. Sube el código a https://github.com/Ftejero21/DocuSesi-n (rama por defecto): `package.json` (`repository`, `bugs`, `homepage`) y los enlaces de `README.md`/`README.es.md` (idioma y LICENSE) apuntan a ese repositorio, así que deben existir en la raíz del repositorio `README.md`, `README.es.md` y `LICENSE`.
 5. Ejecuta `npm test`, `npm run package` y revisa el contenido del paquete:
 
    ```

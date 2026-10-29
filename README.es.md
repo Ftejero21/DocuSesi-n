@@ -1,4 +1,4 @@
-[🇬🇧 Read in English](https://github.com/Ftejero21/DocuSesi-n/blob/HEAD/extension/README.md)
+[🇬🇧 Read in English](https://github.com/Ftejero21/DocuSesi-n/blob/HEAD/README.md)
 
 # DocuSesión
 
@@ -112,4 +112,4 @@ También disponibles: el participante de chat `@docusesion /ruta` y la herramien
 
 ## Licencia
 
-MIT. Consulta el archivo [LICENSE](https://github.com/Ftejero21/DocuSesi-n/blob/HEAD/extension/LICENSE).
+MIT. Consulta el archivo [LICENSE](https://github.com/Ftejero21/DocuSesi-n/blob/HEAD/LICENSE).

@@ -14,8 +14,7 @@
   "pricing": "Free",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Ftejero21/DocuSesi-n.git",
-    "directory": "extension"
+    "url": "https://github.com/Ftejero21/DocuSesi-n.git"
   },
   "bugs": {
     "url": "https://github.com/Ftejero21/DocuSesi-n/issues"
