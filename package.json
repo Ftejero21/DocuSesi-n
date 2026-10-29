@@ -2,7 +2,7 @@
   "name": "docusesion",
   "displayName": "DocuSesión",
   "description": "Turn your Copilot agent session into Word, Excel and PowerPoint documentation, written from your real code and git diff, with real database names and nothing invented.",
-  "publisher": "ftejero",
+  "publisher": "ftejero21",
   "version": "0.1.0",
   "license": "MIT",
   "private": true,

@@ -101,12 +101,12 @@ code --install-extension docusesion-0.1.0.vsix
 
 ## Publicación
 
-1. Crea el publisher `ftejero` en https://marketplace.visualstudio.com/manage.
+1. Crea el publisher `ftejero21` en https://marketplace.visualstudio.com/manage.
 2. Crea un Personal Access Token en https://dev.azure.com: Organization "All accessible organizations" y scope Marketplace -> Manage.
 3. Inicia sesión con vsce (pide el PAT de forma interactiva; no lo escribas en ningún archivo ni script):
 
    ```
-   node -r ./scripts/node18-file-shim.cjs ./node_modules/@vscode/vsce/vsce login ftejero
+   node -r ./scripts/node18-file-shim.cjs ./node_modules/@vscode/vsce/vsce login ftejero21
    ```
 
 4. Sube el código a https://github.com/Ftejero21/DocuSesi-n (rama por defecto): `package.json` (`repository`, `bugs`, `homepage`) y los enlaces de `README.md`/`README.es.md` (idioma y LICENSE) apuntan a ese repositorio, así que deben existir en la raíz del repositorio `README.md`, `README.es.md` y `LICENSE`.
@@ -120,7 +120,7 @@ code --install-extension docusesion-0.1.0.vsix
 7. Open VSX (opcional, sin dependencia en el proyecto): crea una cuenta en https://open-vsx.org, acepta el Publisher Agreement de Eclipse, genera un token y ejecuta (`<TOKEN>` es un marcador, no escribas el valor real en archivos):
 
    ```
-   npx ovsx create-namespace ftejero -p <TOKEN>
+   npx ovsx create-namespace ftejero21 -p <TOKEN>
    npx ovsx publish docusesion-0.1.0.vsix -p <TOKEN>
    ```
 
