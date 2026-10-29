@@ -1,0 +1,14 @@
+src/**
+out/**
+node_modules/**
+test-fixtures/**
+scripts/**
+.vscode/**
+**/*.map
+tsconfig.json
+esbuild.mjs
+.mocharc.json
+*.vsix
+.gitignore
+DEVELOPMENT.md
+CONTRIBUTING.md

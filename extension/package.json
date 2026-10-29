@@ -1,0 +1,425 @@
+{
+  "name": "docusesion",
+  "displayName": "DocuSesión",
+  "description": "Turn your Copilot agent session into Word, Excel and PowerPoint documentation, written from your real code and git diff, with real database names and nothing invented.",
+  "publisher": "ftejero",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1F4E79",
+    "theme": "dark"
+  },
+  "pricing": "Free",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ftejero21/DocuSesi-n.git",
+    "directory": "extension"
+  },
+  "bugs": {
+    "url": "https://github.com/Ftejero21/DocuSesi-n/issues"
+  },
+  "homepage": "https://github.com/Ftejero21/DocuSesi-n#readme",
+  "categories": [
+    "AI",
+    "Chat",
+    "Other"
+  ],
+  "keywords": [
+    "documentation",
+    "docs",
+    "documentación",
+    "copilot",
+    "agent",
+    "ai",
+    "chat",
+    "word",
+    "docx",
+    "excel",
+    "xlsx",
+    "powerpoint",
+    "pptx",
+    "office",
+    "sql",
+    "database",
+    "jpa",
+    "git diff",
+    "technical writing",
+    "lazy"
+  ],
+  "engines": {
+    "vscode": "^1.143.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "DocuSesión escribe archivos en el workspace y ejecuta git; solo funciona en workspaces de confianza."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "languageModelTools": [
+      {
+        "name": "docusesion_documentar",
+        "toolReferenceName": "documentacion",
+        "canBeReferencedInPrompt": true,
+        "displayName": "Documentar sesión",
+        "userDescription": "Crea o actualiza un documento Word, Excel o PowerPoint con la documentación de un cambio o de una explicación.",
+        "icon": "$(book)",
+        "modelDescription": "Creates or updates a Word (docx), Excel (xlsx) or PowerPoint (pptx) document with the documentation of the current work. Use it ONLY when the user asks to document something (e.g. \"#documentacion document how X works\" or \"document this change\").\n\nRules you MUST follow:\n1. SCOPE. Document only what the user asked for. Do not add other changes or other topics from the session.\n2. READ BEFORE WRITING. Before invoking this tool, read the relevant code: the controller/endpoint or Web Service definition (WSDL, OpenAPI, @RestController, @WebService), the service, the repository/DAO/mapper, the entities and the configuration.\n3. NEVER INVENT names of tables, columns, schemas, databases, parameters, URLs or fields. Anything you cannot verify must be written in the document as \"[pendiente de verificar]\".\n4. REAL NAME RESOLUTION. If the code uses non-physical names (JPA entities, Java attributes, constants, variables, placeholders, aliases), resolve them to the real name in this order and register each one in \"mapeoNombres\":\n   a) JPA/Hibernate annotations: @Table(name, schema, catalog), @Column(name), @JoinColumn, @JoinTable, @SecondaryTable, @SequenceGenerator. Without an explicit name the configured naming strategy applies (spring.jpa.hibernate.naming.physical-strategy; Spring Boot default: CamelCase -> snake_case); say so.\n   b) Placeholders and properties (${db.schema}, ${spring.jpa.properties.hibernate.default_schema}...): look them up in application.properties/.yml and in the per-profile files (application-dev, -pre, -pro...). If the value changes per environment: estado \"depende_de_entorno\" with the values listed in \"notas\". If it comes from an environment variable or a vault that is not in the repo: \"pendiente_de_verificar\".\n   c) Java/TypeScript constants used in queries (TABLA_SOLICITUDES = \"...\"): follow the constant to its literal value.\n   d) Native queries (@Query(nativeQuery = true), JdbcTemplate, NamedParameterJdbcTemplate), MyBatis (mapper XML, resultMap, <sql>, <include>) and stored procedures: extract the physical names and resolve aliases (FROM T_SOLICITUD s -> s is T_SOLICITUD).\n   e) Migrations (Flyway, Liquibase) and DDL scripts in the repo are the most reliable source of physical names; use them to confirm.\n   f) Views, synonyms (Oracle) and dblinks: mention them and, if the repo allows it, give the underlying table.\n   g) If sources conflict, do not choose silently: show both and mark \"pendiente_de_verificar\".\n5. VERIFICATION EXAMPLES. If the user asks for examples, include: (a) the sample request: URL, method, relevant headers, body or SOAP envelope; (b) the verification SQL query, ALWAYS using the resolved real names (schema.table.column), with named parameters (:idAsegurado, :poliza) and a comment saying which entity or property each name comes from.\n6. DOCUMENT CONTENT. In \"secciones\" cover: purpose, input (parameters and validations), output (response structure), internal flow (controller -> service -> repository -> DB), possible errors and how to test it. (Except in modo \"anexar\": there the sections must reproduce the existing pattern of the document, see rule 7.)\n7. APPENDING TO AN EXISTING DOCUMENT. When \"destino\" already exists and the user asks to ADD new documentation (a new feature, service or topic) instead of changing existing sections: (a) FIRST invoke docusesion_leerEstructura (#estructuraDocumento) with the same destino; (b) then invoke this tool ONCE with modo \"anexar\" and titulo = the name of the new feature (e.g. the Web Service name), reproducing EXACTLY the block pattern it reports: same order of elements, same levels, questions as level-2 headings if the document does so, code as code blocks. Map the pattern to \"secciones\": elements directly under the title -> a section with encabezado \"\"; each sub-heading -> a section with that encabezado; each code element -> one fenced block (```) in contenido; add prose only where the pattern has a paragraph. Do NOT add Purpose/Input/Output/... sections or \"ejemplos\" unless the pattern has them; put the verification SQL in the code blocks, using the real names. In modo \"anexar\" the extension only appends that block at the very end: existing content is never modified, \"resumen\" is not written, and the change history, name mapping, consulted/affected files and warnings sections are not written (still send mapeoNombres when the SQL uses database names: it is validated and its warnings are returned). If the result says the block already exists or was already appended, do NOT invoke again with another title; tell the user. If the user explicitly asks to update or replace existing sections, see rule 9.\n8. WHERE TO SAVE. NEVER INVENT a \"destino\": only pass the path or document the user gave. If the user did not say where to save it, invoke this tool WITHOUT \"destino\": if a default path is configured (setting docusesion.rutaPorDefecto) it is used (a folder: a new file named after titulo; a document file: that document — if it exists and the user asks to ADD documentation, follow rule 7 omitting \"destino\" in both tools). The user may also have chosen a path for this time only (command \"DocuSesión: Cambiar ruta de destino\"): when \"destino\" is missing it is used before the default path, in the same way (a folder or a document file), and the confirmation shows it as the path chosen for this time. If neither is set, the extension shows the user a picker (NEW document: a Save dialog; ADD to an EXISTING document: an Open dialog; or cancel) and you must follow its result: (a) the documentation was written: report it to the user; (b) the result says the user selected an existing document: NOTHING was written; follow rule 7 using that exact absolute path as \"destino\" in both tools (docusesion_leerEstructura first, then docusesion_documentar once with modo \"anexar\"); (c) the user cancelled the picker: ASK the user in the chat whether to create a NEW document (and at which path) or to ADD it to an EXISTING document (which one) and invoke the tool again with the \"destino\" they give; NEVER invoke the tool again without \"destino\" after a cancel. If the user wants to ADD to an existing document but did not say which one, you may invoke docusesion_leerEstructura without \"destino\": it opens the Open dialog and returns the chosen path. The user can see or change the path with docusesion_configurarRuta (#rutaDocumentacion); after it, if the user also asked to document, invoke this tool without destino.\n9. NEVER MODIFY EXISTING CONTENT WITHOUT AN EXPLICIT REQUEST. Never choose modo \"actualizar\" or \"auto\" for a destino that already exists unless the user explicitly asked to update or replace existing sections of that document; to add new documentation to an existing document always use rule 7 (modo \"anexar\"). The extension always asks the user for confirmation before modifying an existing document (and, in modo \"anexar\", before replacing a block with the same title) and returns the user's decision: if the result says the user cancelled or chose to append instead, follow that instruction exactly and do NOT retry with another modo or another title on your own. If the structure reported by docusesion_leerEstructura already contains a top-level heading equal (or very similar) to the titulo you would use, do NOT decide on your own to skip, merge or update it: still invoke this tool ONCE with modo \"anexar\", that same titulo and the complete new block; the extension will ask the user whether to replace that block, add it with another title or cancel, and will report the decision.\n10. VISUAL FORMAT. Set \"formatoVisual\" ONLY when the user explicitly asks for a visual format. Map \"resalta las sql\" / \"highlight the SQL\" to {\"resaltarSql\": true}; \"pon el SQL en amarillo/verde/azul/gris/rosa\" (or the English equivalent) additionally sets \"colorResaltado\". Never add formatting the user did not ask for. If the user asks for a format the schema cannot express, do not invent it: tell the user it is not supported. The formatting instruction is not content of the document: do not write it in the document. Put every SQL statement in a fenced ```sql block or in an example with tipo \"sql\" so it can be highlighted. In xlsx only the cells of SQL examples are highlighted.\n\nUsage notes:\n- With tipo \"cambio\", \"this change\"/\"este cambio\" ALWAYS means the uncommitted modifications in the workspace git working tree (staged, unstaged and untracked); before invoking, inspect them (git diff/git status or your changes tool) and document THOSE files and what changed in them. NEVER document the generation of this or any documentation file, nor the conversation itself; ignore the target document and anything under .docusesion. The git diff and affected files are attached automatically; if the content does not mention any changed file (by path or file name), the document is NOT written and a warning lists the changed files: fix the content and invoke the tool again. Use tipo \"explicacion\" to document how something that already exists works (no diff is attached; list the files you read in \"archivosConsultados\").\n- \"destino\" is a path relative to the workspace, or an absolute path (Windows C:\\... or C:/..., or POSIX /...). Absolute paths outside the workspace are only accepted when the user enabled the setting docusesion.permitirRutasFueraDelWorkspace; otherwise the tool returns an error (or when the user chose that exact file in the extension's picker). Relative paths can never leave the workspace (no '..'). When missing, see rule 8.\n- \"nombreReal\" must be the simple, unqualified identifier, exactly as it appears literally in \"origen\".\n- The extension validates the \"verificado\" items and the SQL examples and returns warnings; you must fix them and invoke the tool again.\n- To make updates easy (not in modo \"anexar\"), reuse exactly the existing or canonical headings (Propósito, Entrada, Salida, Flujo interno, Errores posibles, Cómo probarlo, in the language of the request). The tool result returns the current headings of the document.\n- Updating an existing document: with tipo \"cambio\", the content of a section whose heading already exists is APPENDED at the end of that section under a sub-heading \"Cambio YYYY-MM-DD: <titulo>\" (\"Change …\" in English); This sub-heading is added automatically by the extension: the \"contenido\" of a section must NOT start with it (nor with \"Cambio\"/\"Change\" followed by a date or the YYYY-MM-DD placeholder) and must not repeat it; write only the change itself. the existing explanation is kept, so send only what changed in that section. With tipo \"explicacion\", matching sections are REPLACED, so send their full content. For both types, \"mapeoNombres\" rows are merged by nombreEnCodigo + tipoObjeto (existing rows updated, new rows added, the rest kept) and \"ejemplos\" are merged by title (same title replaces, new ones are added, the rest kept); identical change-history entries are not duplicated. Invoke the tool only once per request. Do not reuse the \"Cambio/Change YYYY-MM-DD\" sub-headings as section headings.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tipo": {
+              "type": "string",
+              "enum": [
+                "cambio",
+                "explicacion"
+              ],
+              "description": "Document type. 'cambio' documents the uncommitted modifications of the workspace git working tree (not the generation of the document): the git diff and the 'affected files' table are attached automatically. 'explicacion' documents how something that already exists works: NO diff and NO changed files are attached, only 'archivosConsultados'."
+            },
+            "titulo": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Document title (short, descriptive)."
+            },
+            "resumen": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100000,
+              "description": "Summary of what was done or what is being explained, and why. Plain text."
+            },
+            "secciones": {
+              "type": "array",
+              "maxItems": 50,
+              "description": "Document sections. Cover: purpose, input (parameters and validations), output (response structure), internal flow (controller -> service -> repository -> DB), possible errors and how to test it. Reuse existing or canonical headings exactly so that an update replaces the section instead of duplicating it.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "encabezado": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "Section heading. May be empty (\"\") only with modo 'anexar' to place content directly under the title."
+                  },
+                  "contenido": {
+                    "type": "string",
+                    "maxLength": 100000,
+                    "description": "Section body. Plain text; lines starting with '- ' become bullets; fenced blocks (```) become code paragraphs. In modo 'anexar' fenced blocks use the code format of the document."
+                  }
+                },
+                "required": [
+                  "encabezado",
+                  "contenido"
+                ]
+              }
+            },
+            "ejemplos": {
+              "type": "array",
+              "maxItems": 50,
+              "description": "Optional verification examples (sample requests, verification SQL). SQL examples must use the REAL physical names resolved in mapeoNombres.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "titulo": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Example title."
+                  },
+                  "tipo": {
+                    "type": "string",
+                    "enum": [
+                      "peticion",
+                      "sql",
+                      "codigo",
+                      "otro"
+                    ],
+                    "description": "Example kind: 'peticion' (HTTP/SOAP request), 'sql' (verification query), 'codigo' or 'otro'."
+                  },
+                  "contenido": {
+                    "type": "string",
+                    "maxLength": 100000,
+                    "description": "The example itself (request, SQL, code)."
+                  },
+                  "explicacion": {
+                    "type": "string",
+                    "maxLength": 100000,
+                    "description": "What the example shows and how to read it."
+                  }
+                },
+                "required": [
+                  "titulo",
+                  "tipo",
+                  "contenido",
+                  "explicacion"
+                ]
+              }
+            },
+            "mapeoNombres": {
+              "type": "array",
+              "maxItems": 500,
+              "description": "Mapping between names used in code and real physical database names. REQUIRED whenever the document mentions tables, columns, schemas or databases.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "nombreEnCodigo": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Name as it appears in code (entity, attribute, constant, variable, placeholder)."
+                  },
+                  "nombreReal": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Physical name in the database: the simple unqualified identifier, exactly as it appears literally in \"origen\"."
+                  },
+                  "tipoObjeto": {
+                    "type": "string",
+                    "enum": [
+                      "base_datos",
+                      "esquema",
+                      "tabla",
+                      "vista",
+                      "columna",
+                      "secuencia",
+                      "procedimiento",
+                      "sinonimo"
+                    ],
+                    "description": "Kind of database object."
+                  },
+                  "origen": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "File and line where the real name was resolved, relative to the workspace, e.g. src/main/resources/application-pre.yml:12. Several references may be given separated by ';' (path[:line] each); 'verificado' is kept if nombreReal appears in at least one of them."
+                  },
+                  "estado": {
+                    "type": "string",
+                    "enum": [
+                      "verificado",
+                      "depende_de_entorno",
+                      "pendiente_de_verificar"
+                    ],
+                    "description": "'verificado': confirmed in the file named in origen. 'depende_de_entorno': value changes per environment (list the values in notas). 'pendiente_de_verificar': could not be verified."
+                  },
+                  "notas": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "description": "Optional notes, e.g. the value per environment."
+                  }
+                },
+                "required": [
+                  "nombreEnCodigo",
+                  "nombreReal",
+                  "tipoObjeto",
+                  "origen",
+                  "estado"
+                ]
+              }
+            },
+            "archivosConsultados": {
+              "type": "array",
+              "maxItems": 500,
+              "description": "Workspace-relative paths of the files that were read to write the document.",
+              "items": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "formato": {
+              "type": "string",
+              "enum": [
+                "docx",
+                "xlsx",
+                "pptx"
+              ],
+              "description": "Output format. Optional: when missing it is deduced from the extension of \"destino\" (default docx)."
+            },
+            "destino": {
+              "type": "string",
+              "maxLength": 1000,
+              "description": "Optional output path: relative to the workspace (e.g. docs/diseno.docx) or absolute (e.g. C:/Users/me/Desktop/doc.docx). Absolute paths outside the workspace require the setting docusesion.permitirRutasFueraDelWorkspace. Extension must be docx, xlsx or pptx (or none). Only set it when the user said where to save; NEVER invent it. When missing, the default path of the setting docusesion.rutaPorDefecto is used (a folder: new file named after titulo; or a document file); if no default path is configured the extension shows the user a picker to choose where to save (see rule 8)."
+            },
+            "modo": {
+              "type": "string",
+              "enum": [
+                "crear",
+                "actualizar",
+                "auto",
+                "anexar"
+              ],
+              "default": "auto",
+              "description": "'crear' never overwrites (a dated copy is created if the file exists); 'actualizar' updates an existing file; 'auto' (default) updates if the file exists and creates it otherwise; 'anexar' (docx) ONLY appends a new block at the end of an existing document (titulo as a top-level heading, secciones as sub-headings) imitating its existing structure and format, never modifying existing content; it creates the file normally if it does not exist. 'actualizar'/'auto' on an existing file always ask the user for confirmation before writing."
+            },
+            "formatoVisual": {
+              "type": "object",
+              "description": "Optional visual formatting explicitly requested by the user (e.g. \"resalta las sql\", \"highlight the SQL in yellow\"). Omit it when the user did not ask for any visual format. Applies only to the new content written by this invocation; existing content is never restyled.",
+              "properties": {
+                "resaltarSql": {
+                  "type": "boolean",
+                  "description": "Highlight SQL code. What is highlighted: fenced ```sql blocks (or fenced blocks without a language that look like SQL) and examples with tipo 'sql'. Where: in docx, text highlight on the new, updated and appended content; in pptx, the SQL code lines of the sections; in xlsx, the content cell of the SQL examples."
+                },
+                "colorResaltado": {
+                  "type": "string",
+                  "enum": [
+                    "amarillo",
+                    "verde",
+                    "azul",
+                    "gris",
+                    "rosa"
+                  ],
+                  "default": "amarillo",
+                  "description": "Highlight color. Default 'amarillo' (yellow). 'azul' is light blue (cyan). Only used when resaltarSql is true."
+                }
+              }
+            }
+          },
+          "required": [
+            "tipo",
+            "titulo",
+            "resumen"
+          ]
+        }
+      },
+      {
+        "name": "docusesion_leerEstructura",
+        "toolReferenceName": "estructuraDocumento",
+        "canBeReferencedInPrompt": true,
+        "displayName": "Leer estructura de documento",
+        "userDescription": "Lee (sin modificar) la estructura de un documento Word existente para que la documentación nueva siga su mismo formato.",
+        "icon": "$(list-tree)",
+        "modelDescription": "Read-only. Returns the structure of an existing Word document (docx): whether it exists, its headings with level and style, the repeated block pattern of its top-level sections (sequence of element types under each top-level heading, e.g. [code, H2, code]), a complete sample of the last top-level block with type markers, the detected code format, and whether it contains DocuSesión's own sections (change history, name mapping, consulted/affected files, warnings). Use it BEFORE invoking docusesion_documentar with modo \"anexar\" whenever the user asks to ADD new documentation to a document that already exists, then mimic exactly the reported pattern. If a top-level block with the same name as the feature you are documenting already exists, do not skip it nor decide on your own: still invoke docusesion_documentar with modo \"anexar\" and that titulo; the extension asks the user whether to replace it, use another title or cancel. Same path rules as docusesion_documentar (workspace-relative, or absolute; absolute paths outside the workspace require the setting docusesion.permitirRutasFueraDelWorkspace). \"destino\" is optional: if the user did not say which document, omit it and the document chosen for this time only (command \"DocuSesión: Cambiar ruta de destino\"), if the user chose a document, or else the default document of the setting docusesion.rutaPorDefecto when it is a docx/xlsx/pptx file, is used; if there is none, the extension shows the user an Open dialog and the result starts with the chosen path, which you must use exactly as \"destino\" of docusesion_documentar with modo \"anexar\"; if the user cancels, the tool says so: then ASK the user which existing document to use (or whether to create a new one and where). NEVER invent a path. For xlsx/pptx only existence is reported. It never modifies any file.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "destino": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Optional path of the document to inspect: relative to the workspace or absolute (absolute paths outside the workspace require the setting docusesion.permitirRutasFueraDelWorkspace). Omit it only when the user did not say which document: then the default document of the setting docusesion.rutaPorDefecto is used if it is a docx/xlsx/pptx file; otherwise the extension shows the user an Open dialog to choose the document. NEVER invent a path."
+            }
+          }
+        }
+      },
+      {
+        "name": "docusesion_configurarRuta",
+        "toolReferenceName": "rutaDocumentacion",
+        "canBeReferencedInPrompt": true,
+        "displayName": "Ruta de la documentación",
+        "userDescription": "Muestra dónde se guarda la documentación y permite cambiar la ruta (solo una vez o por defecto) o quitarla.",
+        "icon": "$(folder-opened)",
+        "modelDescription": "Shows the user a picker with the current destination paths: the default path (setting docusesion.rutaPorDefecto) and, if any, the path chosen for this time only. It lets the user keep it, change it (folder / existing document / new document, then \"only this time\" or \"as default path\"), discard the one-time path or remove the default path. Invoke it ONLY when the user references this tool or explicitly asks to see or change where documentation is saved. It takes no input: never pass a path. The result reports the effective paths after the user's choice. It never writes documents: do NOT invoke docusesion_documentar afterwards unless the user asked to document something in the same message; then invoke it WITHOUT \"destino\". If the user cancelled, do not invoke it again.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "docusesion.participante",
+        "name": "docusesion",
+        "fullName": "DocuSesión",
+        "description": "Ver o cambiar la ruta donde se guarda la documentación",
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "ruta",
+            "description": "Ver o cambiar la ruta de la documentación (solo una vez o por defecto)"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "docusesion.documentarCambios",
+        "title": "Documentar cambios actuales",
+        "category": "DocuSesión"
+      },
+      {
+        "command": "docusesion.configurarRutaPorDefecto",
+        "title": "Configurar ruta por defecto",
+        "category": "DocuSesión"
+      },
+      {
+        "command": "docusesion.cambiarRutaDestino",
+        "title": "Cambiar ruta de destino",
+        "category": "DocuSesión"
+      }
+    ],
+    "configuration": {
+      "title": "DocuSesión",
+      "properties": {
+        "docusesion.rutaPorDefecto": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "markdownDescription": "Dónde se guarda la documentación cuando no indicas ruta en el chat.\n\n- **Vacío** (por defecto): Copilot te preguntará si quieres crear un documento nuevo (y dónde) o añadirlo a uno existente.\n- **Carpeta** (p. ej. `docs`): se crea un archivo nuevo con el nombre del título dentro de esa carpeta.\n- **Archivo** `.docx`, `.xlsx` o `.pptx` (p. ej. `docs/funcionalidades.docx`): se usa siempre ese documento.\n\nPuede ser relativa al workspace o absoluta (p. ej. `C:\\Users\\yo\\Desktop\\doc.docx`); si es absoluta y queda fuera del workspace, requiere activar `#docusesion.permitirRutasFueraDelWorkspace#`. Si indicas una ruta en el chat, esa tiene prioridad sobre este ajuste."
+        },
+        "docusesion.plantillaWord": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "Ruta a una plantilla .docx (con {titulo}, {fecha} y {resumen}) usada al crear documentos Word nuevos."
+        },
+        "docusesion.plantillaExcel": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "Ruta a una plantilla .xlsx usada al crear libros Excel nuevos."
+        },
+        "docusesion.idioma": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "default": "es",
+          "scope": "resource",
+          "description": "Idioma de las etiquetas fijas de los documentos y del resultado."
+        },
+        "docusesion.permitirRutasFueraDelWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "scope": "resource",
+          "description": "Permite que el destino sea una ruta absoluta fuera del workspace (p. ej. C:\\Users\\yo\\Desktop\\doc.docx), también la ruta por defecto (`docusesion.rutaPorDefecto`). Las rutas relativas nunca pueden salir del workspace. Las copias de seguridad siguen en .docusesion/backups del workspace."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "bundle": "node esbuild.mjs",
+    "bundle:prod": "node esbuild.mjs --production",
+    "vscode:prepublish": "npm run bundle:prod",
+    "pretest": "npm run compile",
+    "test": "mocha",
+    "fixtures": "node scripts/crear-fixture.mjs",
+    "icon": "node scripts/generar-icono.mjs",
+    "package": "node -r ./scripts/node18-file-shim.cjs ./node_modules/@vscode/vsce/vsce package --no-dependencies",
+    "publish:vsce": "node -r ./scripts/node18-file-shim.cjs ./node_modules/@vscode/vsce/vsce publish --no-dependencies"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.12",
+    "ajv": "^8.20.0",
+    "docx": "^9.15.0",
+    "docxtemplater": "^3.71.1",
+    "exceljs": "^4.4.0",
+    "pizzip": "^3.3.0",
+    "pptxgenjs": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "~18.19.130",
+    "@types/vscode": "1.140.0",
+    "@vscode/vsce": "2.32.0",
+    "esbuild": "^0.28.2",
+    "mocha": "^10.8.2",
+    "typescript": "~5.9.3"
+  }
+}

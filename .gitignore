@@ -1,0 +1,8 @@
+# Proyecto de prueba local: no se publica
+demo-angular/
+
+node_modules/
+out/
+dist/
+*.vsix
+.docusesion/
